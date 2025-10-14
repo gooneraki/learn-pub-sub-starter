@@ -61,3 +61,54 @@ func DeclareAndBind(
 	}
 	return ch, queue, nil
 }
+
+func SubscribeJSON[T any](
+	conn *amqp.Connection,
+	exchange,
+	queueName,
+	key string,
+	queueType SimpleQueueType, // an enum to represent "durable" or "transient"
+	handler func(T),
+) error {
+	ch, queue, err := DeclareAndBind(
+		conn,
+		exchange,
+		queueName,
+		key,
+		queueType)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
+
+	deliveries, err := ch.Consume(
+		queue.Name,
+		"",
+		false, false, false, false,
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+
+		for delivery := range deliveries {
+			var data T
+			err = json.Unmarshal(delivery.Body, &data)
+			if err != nil {
+				fmt.Printf("Error unmarshaling message: %v\n", err)
+				continue
+			}
+			handler(data)
+			err = delivery.Nack(false, false)
+			if err != nil {
+				fmt.Printf("Error nacking delivery: %v\n", err)
+
+			}
+
+		}
+	}()
+
+	return nil
+}
