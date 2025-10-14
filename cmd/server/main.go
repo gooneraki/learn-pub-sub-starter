@@ -25,30 +25,16 @@ func main() {
 		log.Fatalf("could not create channel: %v", err)
 	}
 
-	err = pubsub.PublishJSON(
-		publishCh,
-		routing.ExchangePerilDirect,
-		routing.PauseKey,
-		routing.PlayingState{
-			IsPaused: true,
-		},
-	)
-	if err != nil {
-		log.Printf("could not publish time: %v", err)
-	}
-	fmt.Println("Pause message sent!")
-
 	gamelogic.PrintServerHelp()
 
 	for {
-		input := gamelogic.GetInput()
-		if len(input) == 0 {
+		words := gamelogic.GetInput()
+		if len(words) == 0 {
 			continue
 		}
-
-		switch input[0] {
+		switch words[0] {
 		case "pause":
-			fmt.Println("Sending pause message")
+			fmt.Println("Publishing paused game state")
 			err = pubsub.PublishJSON(
 				publishCh,
 				routing.ExchangePerilDirect,
@@ -60,10 +46,8 @@ func main() {
 			if err != nil {
 				log.Printf("could not publish time: %v", err)
 			}
-			fmt.Println("Pause message sent!")
-
 		case "resume":
-			fmt.Println("Sending resume message")
+			fmt.Println("Publishing resumes game state")
 			err = pubsub.PublishJSON(
 				publishCh,
 				routing.ExchangePerilDirect,
@@ -75,15 +59,11 @@ func main() {
 			if err != nil {
 				log.Printf("could not publish time: %v", err)
 			}
-			fmt.Println("resume message sent!")
-		case "exit":
-			fmt.Println("Exiting")
+		case "quit":
+			log.Println("goodbye")
 			return
 		default:
-			fmt.Printf("Don't understand command %s\n", input[0])
-
+			fmt.Println("unknown command")
 		}
-
 	}
-
 }
